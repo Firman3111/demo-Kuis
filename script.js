@@ -5,34 +5,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// 2. Data Soal (Kategori)
-const quizData = {
-    sejarah: [
-        { q: "Siapa Presiden pertama Indonesia?", options: ["Hatta", "Soekarno", "Soeharto", "Habibie"], correct: 1 },
-        { q: "Tahun berapa Indonesia merdeka?", options: ["1945", "1944", "1946", "1947"], correct: 0 },
-        { q: "Sumpah Pemuda terjadi pada tahun...", options: ["1908", "1928", "1945", "1998"], correct: 1 },
-        { q: "Candi tertua di Jawa Tengah adalah...", options: ["Prambanan", "Borobudur", "Kalasan", "Mendut"], correct: 2 },
-        { q: "Pahlawan dari Aceh yang melawan Belanda adalah...", options: ["Pattimura", "Diponegoro", "Cut Nyak Dien", "Kartini"], correct: 2 },
-        { q: "Ibu kota RI pernah pindah ke...", options: ["Bandung", "Surabaya", "Yogyakarta", "Medan"], correct: 2 },
-        { q: "BPUPKI dibentuk oleh...", options: ["Belanda", "Jepang", "Inggris", "Portugal"], correct: 1 },
-        { q: "Lambang Negara Indonesia adalah...", options: ["Harimau", "Garuda", "Banteng", "Padi Kapas"], correct: 1 },
-        { q: "Lagu Indonesia Raya diciptakan oleh...", options: ["Ibu Sud", "C. Simanjuntak", "WR Supratman", "Kusbini"], correct: 2 },
-        { q: "Teks Proklamasi diketik oleh...", options: ["Sayuti Melik", "Sukarni", "Wikana", "Latif"], correct: 0 }
-    ],
-    sains: [
-        { q: "Planet terdekat dari Matahari adalah...", options: ["Mars", "Venus", "Merkurius", "Jupiter"], correct: 2 },
-        { q: "Zat hijau daun disebut juga...", options: ["Klorofil", "Stomata", "Fotosintesis", "Kambium"], correct: 0 },
-        { q: "H2O adalah rumus kimia untuk...", options: ["Udara", "Asam", "Garam", "Air"], correct: 3 },
-        { q: "Penyusun terkecil makhluk hidup adalah...", options: ["Organ", "Jaringan", "Sel", "Sistem"], correct: 2 },
-        { q: "Planet Merah adalah julukan untuk...", options: ["Venus", "Mars", "Saturnus", "Uranus"], correct: 1 },
-        { q: "Manusia bernapas menghirup...", options: ["Nitrogen", "Karbon Dioksida", "Oksigen", "Hidrogen"], correct: 2 },
-        { q: "Alat pengukur gempa disebut...", options: ["Termometer", "Barometer", "Seismograf", "Anemometer"], correct: 2 },
-        { q: "Pusat tata surya kita adalah...", options: ["Bumi", "Bulan", "Matahari", "Jupiter"], correct: 2 },
-        { q: "Mamalia yang bisa terbang adalah...", options: ["Ayam", "Kelelawar", "Burung Unta", "Penguin"], correct: 1 },
-        { q: "Gaya yang menarik benda ke bawah adalah...", options: ["Magnet", "Gesek", "Pegas", "Gravitasi"], correct: 3 }
-    ]
-};
-
 // 3. Variabel Global
 let currentCategory = ''; 
 let isFinished = false; 
@@ -44,6 +16,7 @@ let score = 0;
 let timeLeft = 30;
 let timerInterval;
 let startTime;
+let lives = 5; 
 
 // 4. Navigasi Halaman
 function showPage(pageId) {
@@ -58,8 +31,8 @@ function checkUsername() {
     if (username === "" || groupName === "") {
         document.getElementById('warning-modal').classList.remove('hidden');
     } else {
-        loadChallengeLeaderboard(); // Ambil data dulu
-        showPage('page-challenge'); // Pindah ke halaman tantangan
+        loadChallengeLeaderboard();
+        showPage('page-challenge');
     }
 }
 
@@ -67,7 +40,6 @@ function loadChallengeLeaderboard() {
     const tbody = document.getElementById('challenge-leaderboard-body');
     tbody.innerHTML = '<tr><td colspan="3">Memuat juara...</td></tr>';
 
-    // Mengambil 10 besar skor tertinggi secara global
     database.ref('leaderboard').orderByChild('score').limitToLast(10).once('value', (snapshot) => {
         let data = [];
         snapshot.forEach((child) => { data.push(child.val()); });
@@ -102,6 +74,8 @@ function startQuiz() {
     isFinished = false; 
     score = 0;
     currentIdx = 0;
+    lives = 5; // Reset menjadi 5 nyawa
+    updateLivesDisplay(); 
     startTime = Date.now();
     
     const dataKategori = quizData[currentCategory] || quizData.sejarah;
@@ -111,13 +85,18 @@ function startQuiz() {
     loadQuestion();
 }
 
+// 3. Pastikan fungsi update display tetap menggunakan icon Font Awesome
+function updateLivesDisplay() {
+    const heartHTML = '<i class="fas fa-heart"></i>'.repeat(lives);
+    document.getElementById('lives-display').innerHTML = heartHTML;
+}
+
 function loadQuestion() {
     if (currentIdx < selectedQuestions.length) {
         const q = selectedQuestions[currentIdx];
         document.getElementById('progress').innerText = `Pertanyaan ${currentIdx + 1} dari 10`;
         document.getElementById('question-box').innerText = `${currentIdx + 1}. ${q.q}`;
         
-        // Sembunyikan tombol lanjutkan sampai user menjawab
         const nextBtn = document.getElementById('next-btn');
         nextBtn.classList.add('hidden');
         
@@ -140,7 +119,6 @@ function loadQuestion() {
 function startTimerLogic() {
     clearInterval(timerInterval);
     
-    // SISTEM LEVEL (Waktu Dinamis)
     if (currentIdx < 3) timeLeft = 30;      
     else if (currentIdx < 7) timeLeft = 20; 
     else timeLeft = 10;                     
@@ -164,9 +142,33 @@ function startTimerLogic() {
             progressBar.style.backgroundColor = "var(--danger)";
         }
 
+       if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            lives--;
+            updateLivesDisplay();
+            playSound('audio-wrong');
+
+            if (lives <= 0) {
+                document.getElementById('last-score').innerText = score;
+                document.getElementById('game-over-modal').classList.remove('hidden');
+            } else {
+                nextQuestion();
+            }
+        }
+
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            nextQuestion(); 
+            lives--;
+            updateLivesDisplay();
+            
+            if (lives <= 0) {
+                playSound('audio-gameover'); // Tambahkan ini
+                document.getElementById('last-score').innerText = score;
+                document.getElementById('game-over-modal').classList.remove('hidden');
+            } else {
+                playSound('audio-wrong');
+                nextQuestion();
+            }
         }
     }, 1000);
 }
@@ -176,21 +178,36 @@ function selectOption(idx) {
     const q = selectedQuestions[currentIdx];
     const options = document.querySelectorAll('.option');
     
+    // Matikan semua pilihan agar tidak bisa diklik lagi
     options.forEach(opt => opt.classList.add('disabled'));
 
-    // ANALISIS JAWABAN (Visual Feedback)
     if (idx === q.correct) {
         options[idx].classList.add('correct-flash'); 
         score += 10;
-    } else {
-        options[idx].classList.add('wrong-flash');   
-        options[q.correct].classList.add('correct-flash'); 
-    }
+        playSound('audio-correct');
+   } else {
+    options[idx].classList.add('wrong-flash');   
+    options[q.correct].classList.add('correct-flash'); 
     
+    lives--; 
+    updateLivesDisplay();
+    
+    if (lives <= 0) {
+        playSound('audio-gameover'); // Tambahkan ini
+        setTimeout(() => {
+            document.getElementById('last-score').innerText = score;
+            document.getElementById('game-over-modal').classList.remove('hidden');
+        }, 800);
+        return; 
+    } else {
+        playSound('audio-wrong');
+    }
+}
+    
+    // Munculkan tombol lanjutkan hanya jika nyawa masih ada
     const btn = document.getElementById('next-btn');
     btn.classList.remove('hidden');
     
-    // Set teks dan aksi tombol secara eksplisit
     if (currentIdx === 9) {
         btn.innerText = "Lihat Hasil";
         btn.onclick = finishQuiz;
@@ -209,21 +226,23 @@ function nextQuestion() {
     }
 }
 
-// 6. Akhir Kuis & Database
 function finishQuiz() {
     if (isFinished) return; 
     isFinished = true;
-
-    clearInterval(timerInterval);
-    const totalTimeUsed = Math.floor((Date.now() - startTime) / 1000);
+    clearInterval(timerInterval); //
     
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
-    showPage('page-result');
-    document.getElementById('result-greeting').innerText = `Selamat ${username}!`;
-    document.getElementById('final-score').innerText = score;
+    // 1. Putar suara segera setelah kuis selesai
+    playSound('audio-finish'); //
     
-    saveToLeaderboard(totalTimeUsed);
+    // 2. Berikan sedikit delay 100ms sebelum pindah halaman agar audio terpicu
+    setTimeout(() => {
+        const totalTimeUsed = Math.floor((Date.now() - startTime) / 1000); //
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } }); //
+        showPage('page-result'); //
+        document.getElementById('result-greeting').innerText = `Selamat ${username}!`; //
+        document.getElementById('final-score').innerText = score; //
+        saveToLeaderboard(totalTimeUsed); //
+    }, 100);
 }
 
 function saveToLeaderboard(totalTime) {
@@ -232,11 +251,29 @@ function saveToLeaderboard(totalTime) {
         group: groupName, 
         score: score, 
         time: totalTime,
-        category: currentCategory, // Mencatat apakah Sejarah atau Sains
+        category: currentCategory,
         timestamp: Date.now() 
     };
-
     database.ref('leaderboard').push(newEntry);
+}
+
+function playSound(id) {
+    const sound = document.getElementById(id);
+    if (sound) {
+        sound.pause(); // Hentikan suara yang sedang berjalan (jika ada)
+        sound.currentTime = 0; // Kembalikan ke detik ke-0
+        
+        // Gunakan Promise untuk memastikan suara benar-benar bisa diputar
+        const playPromise = sound.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(_ => {
+                // Suara berhasil diputar
+            }).catch(error => {
+                console.log("Pemutaran suara dicegah oleh browser. User harus berinteraksi dulu.");
+            });
+        }
+    }
 }
 
 function showLeaderboard() {
@@ -248,7 +285,6 @@ function showLeaderboard() {
         let data = [];
         snapshot.forEach((child) => {
             const val = child.val();
-            // Filter agar hanya menampilkan kategori yang baru saja dimainkan
             if (val.category === currentCategory) {
                 data.push(val);
             }
@@ -257,8 +293,14 @@ function showLeaderboard() {
         data.sort((a, b) => b.score - a.score || a.time - b.time);
 
         tbody.innerHTML = data.map((item, index) => {
-            let rankClass = index < 3 ? `rank-${index + 1}` : "rank-other";
-            let medal = index === 0 ? "🥇 " : index === 1 ? "🥈 " : index === 2 ? "🥉 " : "";
+            let rankClass = index < 10 ? `rank-${index + 1}` : "rank-other";
+            
+            // GANTI EMOJI DENGAN ICON FONT AWESOME
+            let medal = "";
+            if (index === 0) medal = '<i class="fas fa-medal" style="color: #fceb8c;"></i> '; // Gold
+            else if (index === 1) medal = '<i class="fas fa-medal" style="color: #706f6f;"></i> '; // Silver
+            else if (index === 2) medal = '<i class="fas fa-medal" style="color: #8b4600;"></i> '; // Bronze
+            
             return `
                 <tr class="${rankClass}">
                     <td>${medal}${index + 1}</td>
@@ -270,4 +312,20 @@ function showLeaderboard() {
             `;
         }).join('');
     });
+}
+
+function playSound(id) {
+    const sound = document.getElementById(id);
+    if (sound) {
+        sound.pause();
+        sound.currentTime = 0;
+        
+        // Memaksa pemutaran suara
+        const playPromise = sound.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log("Browser memblokir audio: " + error);
+            });
+        }
+    }
 }

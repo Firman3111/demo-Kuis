@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kuis Pengetahuan Umum - Portofolio</title>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
@@ -53,44 +55,63 @@
     </div>
 
     <div id="page-category" class="container hidden">
-    <h2>Pilih Topik Kuis</h2>
-    <p>Pilih kategori yang ingin kamu mainkan:</p>
-    <div class="category-grid">
-        <div class="category-card" onclick="selectCategory('sejarah')">
-            <div class="category-icon">📜</div>
-            <h3>Sejarah</h3>
-            <p>Uji wawasan sejarah nasional & dunia</p>
+        <h2>Pilih Topik Kuis</h2>
+        <p>Pilih kategori yang ingin kamu mainkan:</p>
+        <div class="category-grid">
+            <div class="category-card" onclick="selectCategory('sejarah')">
+                <div class="category-icon"><i class="fas fa-landmark"></i></div>
+                <h3>Sejarah</h3>
+                <p>Uji wawasan sejarah nasional & dunia</p>
+            </div>
+
+            <div class="category-card" onclick="selectCategory('sains')">
+                <div class="category-icon"><i class="fas fa-microscope"></i></div>
+                <h3>Sains</h3>
+                <p>Eksplorasi ilmu alam & teknologi</p>
+            </div>
+
+            <div class="category-card" onclick="selectCategory('geografi')">
+                <div class="category-icon"><i class="fas fa-globe-asia"></i></div>
+                <h3>Geografi</h3>
+                <p>Jelajahi peta dunia & keajaiban alam</p>
+            </div>
+
+            <div class="category-card" onclick="selectCategory('hiburan')">
+                <div class="category-icon"><i class="fas fa-film"></i></div>
+                <h3>Hiburan</h3>
+                <p>Uji wawasan film, musik, dan seni</p>
+            </div>
         </div>
-        <div class="category-card" onclick="selectCategory('sains')">
-            <div class="category-icon">🔬</div>
-            <h3>Sains</h3>
-            <p>Eksplorasi ilmu alam & teknologi</p>
-        </div>
-    </div>
     </div>
 
     <div id="page-rules" class="container hidden">
         <h2>Peraturan Kuis</h2>
         <div class="rules-list">
             <p>1. Terdapat 10 pertanyaan pilihan ganda yang dipilih secara acak.</p>
-            <p>2. Anda memiliki waktu 30 detik untuk setiap pertanyaan.</p>
-            <p>3. Jika waktu habis, sistem otomatis lanjut ke soal berikutnya.</p>
-            <p>4. Setelah memilih jawaban, pilihan lain akan terkunci.</p>
-            <p>5. Skor akhir dihitung berdasarkan jawaban yang benar.</p>
+            <p>2. Kamu memiliki <strong>5 Nyawa</strong>. Setiap jawaban salah atau waktu habis akan mengurangi 1 nyawa.</p>
+            <p>3. Waktu menjawab bervariasi (30s, 20s, hingga 10s) tergantung level soal.</p>
+            <p>4. Permainan berakhir jika 10 soal selesai atau <strong>nyawa habis</strong>.</p>
+            <p>5. Skor akhir dihitung berdasarkan jumlah jawaban benar.</p>
         </div>
         <button onclick="startQuiz()">Lanjutkan</button>
     </div>
 
-    <div id="page-quiz" class="container hidden">
+   <div id="page-quiz" class="container hidden">
         <div class="quiz-header">
             <div id="progress">Pertanyaan 1 dari 10</div>
-            <div class="timer-container">
-                <div class="timer">
-                    <span id="timer-icon">⏰</span>
-                    Waktu: <span id="time-left">30</span>s
-                </div>
+
+        <div class="timer-container">
+            <div class="timer">
+                <span id="timer-icon"><i class="fa-regular fa-clock"></i></span>
+                Waktu: <span id="time-left">30</span>s
+            </div>
+            
+            <div id="lives-container" style="margin-top: 5px;">
+                <span id="lives-display"></span>
             </div>
         </div>
+    </div>
+
         <div class="progress-container">
             <div id="progress-bar"></div>
         </div>
@@ -130,18 +151,30 @@
     </div>
 
     </div>
-        <div id="warning-modal" class="modal hidden">
+       <div id="warning-modal" class="modal hidden">
+            <div class="modal-content">
+                <h3><i class="fas fa-exclamation-triangle" style="margin-right: 10px;"></i> PERHATIAN!</h3>
+                <p>Anda harus memasukan username & kelompok sebelum memulai kuis</p>
+                <button onclick="closeModal()">Kembali</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over-modal" class="modal hidden">
         <div class="modal-content">
-            <h3>⚠️ PERHATIAN!</h3>
-            <p>Anda harus memasukan username & kelompok sebelum memulai kuis</p>
-            <button onclick="closeModal()">Kembali</button>
+            <h3 style="color: var(--danger);"><i class="fas fa-heart-crack"></i> GAME OVER</h3>
+            <p>Yah, nyawa kamu sudah habis! Jangan menyerah, coba lagi untuk memperbaiki skor kamu.</p>
+            <div style="margin: 20px 0; padding: 10px; background: #f8f9fa; border-radius: 10px;">
+                <p>Skor Terakhir: <span id="last-score" style="font-weight: bold; color: var(--accent);">0</span></p>
+            </div>
+            <button onclick="location.reload()">Main Lagi</button>
         </div>
     </div>
 
     </main>
 
     <section class="marketing-box">
-        <h3>🚀 Butuh Kuis Custom?</h3>
+        <h3><i class="fas fa-rocket" style="color: var(--accent); margin-right: 10px;"></i>Butuh Kuis Custom?</h3>
         <p>Kami melayani pembuatan sistem kuis interaktif untuk sekolah, event, atau branding bisnis Anda.</p>
         <a href="https://wa.me/628141867499" target="_blank" class="cta-button">
             <i class="fab fa-whatsapp"></i> Hubungi Kami Sekarang
@@ -149,13 +182,18 @@
     </section>
 
     <footer class="quiz-footer">
-        <p>Made with <span class="heart-icon">❤️</span> by artclinic & Gemini</p>
+        <p>Made with <span class="heart-icon"><i class="fas fa-heart"></i></span> by artclinic & Gemini</p>
         <p class="copyright">&copy; 2026 Quizzy Indonesia. All Rights Reserved.</p>
     </footer>
 
-    
+    <audio id="audio-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="audio-wrong" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+    <audio id="audio-finish" src="https://cdn.pixabay.com/audio/2021/08/04/audio_bbd1345941.mp3"></audio>
+    <audio id="audio-gameover" src="https://assets.mixkit.co/active_storage/sfx/154/154-preview.mp3"></audio>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="soal.js"></script>
 
     <script src="script.js"></script>
 </body>
